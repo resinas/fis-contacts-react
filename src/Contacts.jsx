@@ -1,16 +1,31 @@
 import Contact from './Contact'
 import Alert from './Alert';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import NewContactModal from './NewContactModal';
 import EditableContact from './EditableContact';
+import { getContacts, addContact } from './api/contacts';
 
-export default function Contacts({ contacts }) {
+export default function Contacts() {    
     const [message, setMessage] = useState(null);
-    const [contactsList, setContactsList] = useState(contacts);
+    const [contactsList, setContactsList] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingContact, setEditingContact] = useState(null);
 
-    function handleAddContact(newContact) {
+    useEffect(() => {
+        async function loadContacts() {
+            try {
+                const contacts = await getContacts();
+                setContactsList(contacts);
+            } catch (error) {
+                console.log("Error loading contacts:", error);
+                setMessage(`Error loading contacts: ${error.message}`);
+            }
+        }
+
+        loadContacts();
+    }, []);
+
+    async function handleAddContact(newContact) {
         if (newContact.name === '') {
             setMessage('A name must be provided');
             return false;
@@ -21,8 +36,15 @@ export default function Contacts({ contacts }) {
             return false;
         }
 
-        setContactsList((prev) => [...prev, newContact]);
-        setIsModalOpen(false);
+        try {
+            await addContact(newContact);
+            setContactsList((prev) => [...prev, newContact]);
+            setIsModalOpen(false);
+        } catch (error) {
+            console.error("Error adding contact:", error);
+            setMessage(`Error adding contact: ${error.message}`);
+            return false;
+        }
 
         return true;
     }
